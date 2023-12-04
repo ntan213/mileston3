@@ -1,0 +1,115 @@
+module execute_cycle (
+input logic clk, rst,
+input logic RegWriteE,
+input logic MemWriteE,
+input logic BrE,
+input logic JumpE,
+input logic [3:0] ALUControlE,
+input logic [1:0] ResultSrcE,
+input logic op_b_sel_E,
+input logic [31:0] rs1_E,
+input logic [31:0] rs2_E,
+input logic [31:0] immOut_E,
+input logic [4:0] rd_addr_E,
+input logic [12:0] PCE,
+input logic [12:0] PCPlus4E,
+input logic [1:0] ForwardAE,
+input logic [1:0] ForwardBE,
+input logic [31:0] ResultW,
+output logic [12:0] PCTargetE,
+output logic PCSrcE,
+output logic RegWriteM,
+output logic MemWriteM,
+output logic [1:0] ResultSrcM,
+output logic [31:0] ALUResultM,
+output logic [31:0] WriteDataM,
+output logic [4:0] rd_addr_M,
+output logic [12:0] PCPlus4M
+);
+//declaring wires
+logic [31:0] SrcA;
+logic [31:0] SrcB;
+logic [31:0] ResultE;
+logic br_less_E;
+logic br_equal_E;
+logic br_not_equal_E;
+logic [31:0] PC_result;
+//declare registers
+reg RegWriteE_reg;
+reg [1:0] ResultSrcE_reg;
+reg MemWriteE_reg;
+reg [31:0] ResultE_reg;
+reg [31:0] rs2_E_reg; //write data to memory
+reg [4:0] rd_addr_E_reg;
+reg [12:0] PCPlus4E_reg;
+//operand_A forwarding
+mux_3x1 op_A_forward (.A(rs1_E),
+.B(ResultW),
+.C(ALUResultM),
+.sel(ForwardAE),
+.mux3(srcA_forward)
+);
+//operand B forwarding
+mux_3x1 op_B_forward (.A(rs2_E),
+.B(ResultW),
+.C(ALUResultM),
+.sel(ForwardAE),
+.mux3(srcB_forward)
+);
+
+
+//ALU operand B MUX
+mux_AB_sel alu_src_B (.a(srcB_forward),
+.b(immOut_E),
+.select(op_b_sel_E),
+.result(SrcB)
+);
+
+//ALU 
+alu alu_unit (.operand_a(srcA_forward),
+.operand_b(SrcB),
+.alu_op(ALUControlE),
+.alu_data(ResultE)
+);
+//PC adder
+PC_adder PC_branch_compute (.a({19'b0,PCE}),
+.b(ImmOut_E),
+.c(PC_result)
+);
+
+//declare logic of registers
+always@ (posedge clk or negedge rst) begin
+if (rst == 1'b0)
+begin
+RegWriteE_reg <= 1'b0;
+MemWriteE_reg <= 1'b0;
+ResultE_reg <= 32'b0;
+ResultSrcE_reg <= 2'b0;
+rs2_E_reg <= 32'b0;
+rd_addr_E_reg <= 5'b0;
+PCPlus4E_reg <= 13'b0;
+end
+else begin
+RegWriteE_reg <= RegWriteE;
+MemWriteE_reg <= MemWriteE;
+ResultE_reg <= ResultE;
+ResultSrcE_reg <= ResultSrcE;
+rs2_E_reg <= rs2_E;
+rd_addr_E_reg <= rd_addr_E;
+PCPlus4E_reg <= PCPlus4E;
+end
+end
+	
+//assign outputs
+assign PCSrcE = (BrE & (br_less_E | br_equal_E | br_not_equal_E)) | (JumpE); 
+assign PCTargetE = PC_result[12:0];
+assign RegWriteM = RegWriteE_reg;
+assign MemWriteM = MemWriteE_reg;
+assign ALUResultM = ResultE_reg;
+assign ResultSrcM = ResultSrcE_reg;
+assign WriteDataM = rs2_E_reg;
+assign rd_addr_M = rd_addr_E_reg;
+assign PCPlus4M = PCPlus4E_reg;
+endmodule
+
+

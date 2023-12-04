@@ -1,0 +1,36 @@
+module program_counter (
+input logic [12:0] PC_branch,
+input logic clk_i,
+input logic rst_ni,
+input logic selPC,
+output reg [12:0] current_PC,
+output reg [12:0] PC_plus_4
+);
+logic [12:0] mux_output;
+logic [12:0] PC_now;
+logic [12:0] PC_next;
+assign current_PC = PC_now;
+assign PC_plus_4 = PC_next;
+next_PC_calculator next_PC(.number_a(PC_now),
+.number_b(4),
+.sum(PC_next)
+);
+
+ mux_2x1 PC_select (.a(PC_next), 
+.b(PC_branch),
+.sel(selPC),
+.mux_out(mux_output)
+);
+
+D_flipflop reg_1 (.D(mux_output), 
+.clk(clk_i),
+.rst(rst_ni),
+.Q(PC_now)
+);
+endmodule
+
+
+
+
+
+

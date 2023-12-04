@@ -1,0 +1,143 @@
+module decode_cycle (
+input logic clk, RegWriteW, rst,
+input logic [31:0] InstrD,
+input logic [31:0] ResultW,
+input logic [12:0] PCD,PCPlus4D,
+input logic [4:0] rd_addr_W,
+output logic RegWriteE,
+output logic MemWriteE,
+output logic BrE,
+output logic JumpE,
+output logic [3:0] ALUControlE,
+output logic [1:0] ResultSrcE,
+output logic op_b_sel_E,
+output logic [31:0] rs1_E,
+output logic [31:0] rs2_E,
+output logic [31:0] immOut_E,
+output logic [4:0] rd_addr_E,
+output logic [12:0] PCE,
+output logic [12:0] PCPlus4E,
+output logic [4:0] rs1_addr_E,
+output logic [4:0] rs2_addr_E,
+output logic [4:0] rs1_addr_D_out,
+output logic [4:0] rs2_addr_D_out
+);
+//declare wires
+logic RegWriteD;
+logic MemWriteD;
+logic BrD;
+logic JumpD;
+logic [3:0] ALUControlD;
+logic [1:0] ResultSrcD;
+logic [6:0] ImmSrcD;
+logic op_b_sel_D;
+logic [31:0] rs1_D;
+logic [31:0] rs2_D;
+logic [31:0] immOut_D;
+logic [4:0] rs1_addr_D;
+logic [4:0] rs2_addr_D;
+assign rs1_addr_D = InstrD[19:15];
+assign rs2_addr_D = InstrD[24:20];
+//Control Unit
+ctrl_unit control (.funct7(InstrD[6:0]),
+.funct3(InstrD[14:12]),
+.inst30(InstrD[30]),
+.br_sel(BrD),
+.jump_sel(JumpD),
+.rd_wren(RegWriteD),
+.mem_wren(MemWriteD),
+.op_b_sel(op_b_sel_D),
+.imm_sel(ImmSrcD),
+.wb_sel(ResultSrcD),
+.alu_sel(ALUControlD)
+ );
+ //register file
+ regfile rf (.clk_i(clk),
+.rst_ni(rst),
+.rs1_addr(InstrD[19:15]),
+.rs2_addr(InstrD[24:20]),
+.rd_addr(rd_addr_W),
+.rd_data(ResultW),
+.rd_wren(RegWriteW),
+.rs1_data(rs1_D),
+.rs2_data(rs2_D)
+ );
+ //immediate generator
+ immediate_generator imm_ext(.instruction(InstrD),
+.immOut(immOut_D),
+.opcode(ImmSrcD)
+ );
+ //declare registers
+reg RegWriteD_reg;
+reg MemWriteD_reg;
+reg BrD_reg;
+reg JumpD_reg;
+reg [3:0] ALUControlD_reg;
+reg [1:0] ResultSrcD_reg;
+reg [6:0] ImmSrcD_reg;
+reg op_b_sel_D_reg;
+reg [31:0] rs1_D_reg;
+reg [31:0] rs2_D_reg;
+reg [31:0] immOut_D_reg;
+reg [4:0] rd_addr_D_reg;
+reg [12:0] PCD_reg;
+reg [12:0] PCPlus4D_reg;
+reg [5:0] rs1_addr_D_reg;
+reg [5:0] rs2_addr_D_reg;
+//declare register logic 
+always@ (posedge clk or negedge rst) begin
+if (rst == 1'b0)
+begin
+RegWriteD_reg <= 1'b0;
+MemWriteD_reg <= 1'b0;
+BrD_reg <= 1'b0;
+JumpD_reg <= 1'b0;
+ALUControlD_reg <= 4'b0;
+ResultSrcD_reg <= 2'b0;
+op_b_sel_D_reg <= 1'b0;
+rs1_D_reg <= 32'b0;
+rs2_D_reg <= 32'b0;
+immOut_D_reg <= 32'b0;
+rd_addr_D_reg <= 5'b0;
+PCD_reg <= 13'b0;
+PCPlus4D_reg <= 13'b0;
+rs1_addr_D_reg <= 5'b0;
+rs2_addr_D_reg <= 5'b0;
+end
+else begin
+RegWriteD_reg <= RegWriteD;
+MemWriteD_reg <= MemWriteD;
+BrD_reg <= BrD;
+JumpD_reg <= JumpD;
+ALUControlD_reg <= ALUControlD;
+ResultSrcD_reg <= ResultSrcD;
+op_b_sel_D_reg <= op_b_sel_D;
+rs1_D_reg <= rs1_D;
+rs2_D_reg <= rs2_D;
+immOut_D_reg <= immOut_D;
+rd_addr_D_reg <= InstrD[11:7];
+PCD_reg <= PCD;
+PCPlus4D_reg <= PCPlus4D;
+rs1_addr_D_reg <= rs1_addr_D;
+rs2_addr_D_reg <= rs2_addr_D;
+end
+end
+//assign outputs
+assign RegWriteE = RegWriteD_reg;
+assign MemWriteE = MemWriteD_reg;
+assign BrE = BrD_reg;
+assign JumpE = JumpD_reg;
+assign ALUControlE = ALUControlD_reg;
+assign ResultSrcE = ResultSrcD_reg;
+assign op_b_sel_E = op_b_sel_D_reg;
+assign rs1_E =  rs1_D_reg;
+assign rs2_E =  rs2_D_reg;
+assign immOut_E = immOut_D_reg;
+assign rd_addr_E =  rd_addr_D_reg;
+assign PCE = PCD_reg;
+assign PCPlus4E = PCPlus4D_reg;
+assign rs1_addr_E = rs1_addr_D_reg;
+assign rs2_addr_E = rs2_addr_D_reg;
+assign rs1_addr_D_out = rs1_addr_D;
+assign rs2_addr_D_out = rs2_addr_D;
+endmodule
